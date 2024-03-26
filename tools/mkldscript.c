@@ -109,8 +109,6 @@ static void write_ld_script(FILE *fout)
                 fprintf(fout, "            %s (.data)\n"
                               "        . = ALIGN(0x10);\n", seg->includes[j].fpath);
 
-            fprintf(fout, "            %s (.rodata)\n"
-                          "        . = ALIGN(0x10);\n", seg->includes[j].fpath);
             // Compilers other than IDO, such as GCC, produce different sections such as
             // the ones named directly below. These sections do not contain values that
             // need relocating, but we need to ensure that the base .rodata section
@@ -119,12 +117,11 @@ static void write_ld_script(FILE *fout)
             // the beginning of the entire rodata area in order to remain consistent.
             // Inconsistencies will lead to various .rodata reloc crashes as a result of
             // either missing relocs or wrong relocs.
-            fprintf(fout, "            %s (.rodata.str1.4)\n"
-                          "        . = ALIGN(0x10);\n", seg->includes[j].fpath);
-            fprintf(fout, "            %s (.rodata.cst4)\n"
-                          "        . = ALIGN(0x10);\n", seg->includes[j].fpath);
-            fprintf(fout, "            %s (.rodata.cst8)\n"
-                          "        . = ALIGN(0x10);\n", seg->includes[j].fpath);
+            fprintf(fout, "            %s (.rodata)\n"
+                          "            %s (.rodata.str*)\n"
+                          "            %s (.rodata.cst*)\n"
+                          "        . = ALIGN(0x10);\n",
+                    seg->includes[j].fpath, seg->includes[j].fpath, seg->includes[j].fpath);
         }
 
         fprintf(fout, "        _%sSegmentRoDataEnd = .;\n", seg->name);
@@ -219,7 +216,8 @@ static void write_ld_script(FILE *fout)
 
     // Debugging sections
     fputs(
-        // mdebug debug sections
+        // mdebug sections
+          "    .pdr              : { *(.pdr) }"                                             "\n"
           "    .mdebug           : { *(.mdebug) }"                                          "\n"
           "    .mdebug.abi32     : { *(.mdebug.abi32) }"                                    "\n"
         // DWARF debug sections
@@ -249,8 +247,16 @@ static void write_ld_script(FILE *fout)
         // DWARF 3
           "    .debug_pubtypes 0 : { *(.debug_pubtypes) }"                                  "\n"
           "    .debug_ranges   0 : { *(.debug_ranges) }"                                    "\n"
-        // DWARF Extension
+        // DWARF 5
+          "    .debug_addr     0 : { *(.debug_addr) }"                                      "\n"
+          "    .debug_line_str 0 : { *(.debug_line_str) }"                                  "\n"
+          "    .debug_loclists 0 : { *(.debug_loclists) }"                                  "\n"
           "    .debug_macro    0 : { *(.debug_macro) }"                                     "\n"
+          "    .debug_names    0 : { *(.debug_names) }"                                     "\n"
+          "    .debug_rnglists 0 : { *(.debug_rnglists) }"                                  "\n"
+          "    .debug_str_offsets 0 : { *(.debug_str_offsets) }"                            "\n"
+          "    .debug_sup      0 : { *(.debug_sup) }\n"
+        // gnu attributes
           "    .gnu.attributes 0 : { KEEP (*(.gnu.attributes)) }"                           "\n", fout);
 
     // Discard all other sections not mentioned above
